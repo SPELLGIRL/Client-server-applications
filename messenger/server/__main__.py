@@ -24,7 +24,7 @@ class Server:
         self._sock.listen(MAX_CONNECTIONS)
         self._sock.settimeout(TIMEOUT)
         print(
-            f'Сервер запущен (слушает с адреса: {self._host or "любой"}, порт: {self._port})')
+            f'Сервер запущен (ip интерфейса: {self._host or "любой"}, порт: {self._port})')
 
     def connect(self):
         try:
@@ -44,7 +44,7 @@ class Server:
             self._connections.remove(client)
         client.close()
 
-    def validate_request(self, client):
+    def get_validate_request(self, client):
         try:
             request = get_message(client)
             print(request)
@@ -56,16 +56,16 @@ class Server:
         else:
             return request
 
-    def validate_response(self, client, response):
+    def create_send_response(self, client, request):
         try:
-            if ACTION in response and \
-                    response[ACTION] == PRESENCE and \
-                    TIME in response and \
-                    isinstance(response[TIME], float):
-                response = {RESPONSE: 200}
+            if ACTION in request and \
+                    request[ACTION] == PRESENCE and \
+                    TIME in request and \
+                    isinstance(request[TIME], float):
+                request = {RESPONSE: 200}
             else:
-                response = {RESPONSE: 400, ERROR: 'Не верный запрос.'}
-            send_message(client, response)
+                request = {RESPONSE: 400, ERROR: 'Не верный запрос.'}
+            send_message(client, request)
         except ConnectionResetError:
             self.disconnect(client)
 
@@ -73,11 +73,11 @@ class Server:
         try:
             while True:
                 self.connect()
-                for connection in self._connections:
-                    request = self.validate_request(connection)
+                for client in self._connections:
+                    request = self.get_validate_request(client)
                     if request:
-                        if connection in self._connections:
-                            self.validate_response(connection, request)
+                        if client in self._connections:
+                            self.create_send_response(client, request)
         except KeyboardInterrupt:
             print('Сервер остановлен по инициативе пользователя.')
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='Запуск сервера.')
     parser.add_argument(
         '-a', nargs='?', default=f'{DEFAULT_IP}', type=str,
-        help='прослушиваемые IP адреса'
+        help='ip адрес интерфейса (по умолчанию любой)'
     )
     parser.add_argument(
         '-p', nargs='?', default=f'{DEFAULT_PORT}', type=int,

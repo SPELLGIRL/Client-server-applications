@@ -46,7 +46,8 @@ class Client:
         return message
 
     @staticmethod
-    def translate_message(response):
+    def get_validate_response(server):
+        response = get_message(server)
         if not isinstance(response, dict):
             raise TypeError
         if RESPONSE not in response:
@@ -61,10 +62,9 @@ class Client:
     def main_loop(self):
         try:
             while True:
-                presence = self.create_presence()
-                send_message(self._sock, presence)
-                response = get_message(self._sock)
-                response = self.translate_message(response)
+                msg = self.create_presence()
+                send_message(self._sock, msg)
+                response = self.get_validate_response(self._sock)
                 print(response)
         except KeyboardInterrupt:
             print('Клиент закрыт по инициативе пользователя.')
@@ -81,10 +81,11 @@ if __name__ == '__main__':
         help='IP адрес сервера'
     )
     parser.add_argument(
-        'port', nargs='?', default=f'{DEFAULT_PORT}', type=int,
-        choices=range(1024, 65535), help='порт сервера'
+        'port', nargs='?', default=f'{DEFAULT_PORT}', type=int, help='порт сервера'
     )
     args = parser.parse_args()
+    if args.port not in range(1024, 65535):
+        parser.error(f'argument port: invalid choice: {args.port} (choose from 1024-65535)')
 
     client = Client()
     client.main_loop()
