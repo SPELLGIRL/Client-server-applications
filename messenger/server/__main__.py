@@ -24,7 +24,8 @@ class Server:
         self._sock.listen(MAX_CONNECTIONS)
         self._sock.settimeout(TIMEOUT)
         print(
-            f'Сервер запущен (ip интерфейса: {self._host or "любой"}, порт: {self._port})')
+            f'Сервер запущен (ip интерфейса: {self._host or "любой"}, '
+            f'порт: {self._port})')
 
     def connect(self):
         try:
@@ -44,40 +45,33 @@ class Server:
             self._connections.remove(client)
         client.close()
 
-    def get_validate_request(self, client):
-        try:
-            request = get_message(client)
-            print(request)
-        except ConnectionResetError:
-            self.disconnect(client)
-        except (ValueError, TypeError):
-            print('Принято некорретное сообщение от клиента.')
-            self.disconnect(client)
+    @staticmethod
+    def create_response(request):
+        if ACTION in request and \
+                request[ACTION] == PRESENCE and \
+                TIME in request and \
+                isinstance(request[TIME], float):
+            return {RESPONSE: 200}
         else:
-            return request
-
-    def create_send_response(self, client, request):
-        try:
-            if ACTION in request and \
-                    request[ACTION] == PRESENCE and \
-                    TIME in request and \
-                    isinstance(request[TIME], float):
-                request = {RESPONSE: 200}
-            else:
-                request = {RESPONSE: 400, ERROR: 'Не верный запрос.'}
-            send_message(client, request)
-        except ConnectionResetError:
-            self.disconnect(client)
+            return {RESPONSE: 400, ERROR: 'Не верный запрос.'}
 
     def main_loop(self):
         try:
             while True:
                 self.connect()
                 for client in self._connections:
-                    request = self.get_validate_request(client)
-                    if request:
-                        if client in self._connections:
-                            self.create_send_response(client, request)
+                    try:
+                        request = get_message(client)
+                        print(request)
+                        if request:
+                            if client in self._connections:
+                                response = self.create_response(request)
+                                send_message(client, response)
+                    except ConnectionResetError:
+                        self.disconnect(client)
+                    except (ValueError, TypeError):
+                        print('Принято некорретное сообщение от клиента.')
+                        self.disconnect(client)
         except KeyboardInterrupt:
             print('Сервер остановлен по инициативе пользователя.')
 
@@ -94,7 +88,9 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     if args.p not in range(1024, 65535):
-        parser.error(f'argument -p: invalid choice: {args.p} (choose from 1024-65535)')
+        parser.error(
+            f'argument -p: invalid choice: {args.p} (choose from 1024-65535)'
+        )
 
     server = Server()
     server.main_loop()
