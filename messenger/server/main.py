@@ -15,17 +15,13 @@ from jim.config import *
 
 
 class Server:
-    def __init__(self):
-        self._host = args.a
-        self._port = args.p
+    def __init__(self, address):
         self._connections = []
         self._sock = socket(AF_INET, SOCK_STREAM)
-        self._sock.bind((self._host, self._port))
+        self._sock.bind(address)
         self._sock.listen(MAX_CONNECTIONS)
         self._sock.settimeout(TIMEOUT)
-        print(
-            f'Сервер запущен (ip интерфейса: {self._host or "любой"}, '
-            f'порт: {self._port})')
+        print(f'Сервер запущен ({address[0] or "*"}:{address[1]}).')
 
     def connect(self):
         try:
@@ -75,8 +71,11 @@ class Server:
         except KeyboardInterrupt:
             print('Сервер остановлен по инициативе пользователя.')
 
+    def close(self):
+        self._sock.close()
 
-if __name__ == '__main__':
+
+def parse_args():
     parser = ArgumentParser(description='Запуск сервера.')
     parser.add_argument(
         '-a', nargs='?', default=f'{DEFAULT_IP}', type=str,
@@ -86,11 +85,19 @@ if __name__ == '__main__':
         '-p', nargs='?', default=f'{DEFAULT_PORT}', type=int,
         help='порт сервера в диапазоне от 1024 до 65535'
     )
-    args = parser.parse_args()
-    if args.p not in range(1024, 65535):
+    result = parser.parse_args()
+    if result.p not in range(1024, 65535):
         parser.error(
-            f'argument -p: invalid choice: {args.p} (choose from 1024-65535)'
+            f'argument -p: invalid choice: {result.p} (choose from 1024-65535)'
         )
+    return result
 
-    server = Server()
+
+def run():
+    args = parse_args()
+    server = Server((args.a, args.p))
     server.main_loop()
+
+
+if __name__ == '__main__':
+    run()

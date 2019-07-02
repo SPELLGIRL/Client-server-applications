@@ -32,5 +32,6 @@ class MandatoryKeyError(Exception):
 
 
 CUSTOM_EXCEPTIONS = (
-    UsernameToLongError, ResponseCodeError, ResponseCodeLenError, MandatoryKeyError
+    UsernameToLongError, ResponseCodeError, ResponseCodeLenError,
+    MandatoryKeyError
 )
