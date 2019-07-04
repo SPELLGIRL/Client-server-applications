@@ -81,7 +81,7 @@ class Server:
             info_msg = 'Сервер остановлен по инициативе пользователя.'
             self.__logger.info(info_msg)
             print(info_msg)
-
+            
     def close(self):
         self._sock.close()
 
