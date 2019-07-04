@@ -1,8 +1,7 @@
 import sys
 import os
 
-module_dir = os.path.join(os.getcwd(),
-                          os.path.dirname(os.path.dirname(__file__)))
+module_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(module_dir)
 
 import unittest
