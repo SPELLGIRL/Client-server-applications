@@ -17,32 +17,50 @@ from exceptions import CUSTOM_EXCEPTIONS, UsernameToLongError, \
     ResponseCodeLenError, MandatoryKeyError, ResponseCodeError
 from jim.config import *
 from jim.utils import send_message, get_message
+from log.config import client_logger
 
 
 class Client:
     def __init__(self, address, user_name):
+        self.__logger = client_logger
         self._host = address
-        self._username = self.validate_username(user_name)
+        self._sock = socket(AF_INET, SOCK_STREAM)
         try:
-            self._sock = socket(AF_INET, SOCK_STREAM)
+            self._username = self.validate_username(user_name)
             self._sock.connect(self._host)
-        except ConnectionRefusedError:
-            print('Сервер отклонил запрос на подключение.')
+        except (ConnectionRefusedError, OSError):
+            info_msg = 'Сервер отклонил запрос на подключение.'
+            self.__logger.warning(info_msg)
+            print(info_msg)
+            self.close()
             exit(1)
+        info_msg = f'Клиент запущен (сервер: {address[0]}:{address[1]})'
+        self.__logger.info(info_msg)
+        print(info_msg)
 
-        print(f'Клиент запущен (сервер: {address[0]}:{address[1]})')
-
-    @staticmethod
-    def validate_username(user_name):
-        try:
-            if user_name == 'Гость':
-                user_name = input('Введите своё имя: ') or f'Гость_{randint(1,1000)}'
-            if len(user_name) > 25:
-                raise UsernameToLongError
-        except UsernameToLongError as ce:
-            print(ce)
-            exit(1)
-        return user_name
+    def validate_username(self, user_name):
+        count = 3
+        while count:
+            try:
+                if user_name == 'Гость':
+                    check_user_name = input(
+                        'Введите своё имя: '
+                    ).strip() or f'Гость_{randint(1, 1000)}'
+                else:
+                    check_user_name = user_name
+                if len(check_user_name) > 25:
+                    raise UsernameToLongError
+                return check_user_name
+            except UsernameToLongError as ce:
+                self.__logger.info(ce)
+                print(ce)
+            finally:
+                count -= 1
+        else:
+            info_msg = 'Превышено максимальное количество попыток ввода.'
+            self.__logger.info(info_msg)
+            print(info_msg)
+            exit(0)
 
     @staticmethod
     def translate_response(response):
@@ -72,15 +90,21 @@ class Client:
             while True:
                 request = self.create_presence()
                 send_message(self._sock, request)
+                self.__logger.info(f'Отправлено: {str(request)}.')
                 response = get_message(self._sock)
                 response = self.translate_response(response)
-                print(response)
-                return response
+                self.__logger.info(f'Получено: {str(response)}.')
+                raise KeyboardInterrupt
         except KeyboardInterrupt:
-            print('Клиент закрыт по инициативе пользователя.')
-        except ConnectionResetError:
-            print('Соединение с сервером разорвано.')
+            info_msg = 'Клиент закрыт по инициативе пользователя.'
+            self.__logger.info(info_msg)
+            print(info_msg)
+        except (ConnectionResetError, OSError):
+            info_msg = 'Соединение с сервером разорвано.'
+            self.__logger.warning(info_msg)
+            print(info_msg)
         except CUSTOM_EXCEPTIONS as ce:
+            self.__logger.error(ce)
             print(ce)
         finally:
             self._sock.close()
@@ -96,7 +120,8 @@ def parse_args():
         help='IP адрес сервера'
     )
     parser.add_argument(
-        'port', nargs='?', default=f'{DEFAULT_PORT}', type=int, help='порт сервера'
+        'port', nargs='?', default=f'{DEFAULT_PORT}', type=int,
+        help='порт сервера'
     )
     parser.add_argument(
         '-u',
@@ -107,7 +132,8 @@ def parse_args():
     result = parser.parse_args()
     if result.port not in range(1024, 65535):
         parser.error(
-            f'argument port: invalid choice: {result.port} (choose from 1024-65535)'
+            f'argument port: invalid choice: {result.port} '
+            f'(choose from 1024-65535)'
         )
     return result
 

@@ -12,16 +12,20 @@ from settings import DEFAULT_PORT, DEFAULT_IP, MAX_CONNECTIONS, TIMEOUT
 from socket import socket, AF_INET, SOCK_STREAM
 from jim.utils import get_message, send_message
 from jim.config import *
+from log.config import server_logger
 
 
 class Server:
     def __init__(self, address):
+        self.__logger = server_logger
         self._connections = []
         self._sock = socket(AF_INET, SOCK_STREAM)
         self._sock.bind(address)
         self._sock.listen(MAX_CONNECTIONS)
         self._sock.settimeout(TIMEOUT)
-        print(f'Сервер запущен ({address[0] or "*"}:{address[1]}).')
+        info_msg = f'Сервер запущен ({address[0] or "*"}:{address[1]}).'
+        print(info_msg)
+        self.__logger.info(info_msg)
 
     def connect(self):
         try:
@@ -29,14 +33,15 @@ class Server:
         except OSError:
             pass
         else:
-            print(f'Получен запрос на соединение от {addr[0]}:{addr[1]}')
+            self.__logger.info(f'Получен запрос на соединение от '
+                               f'{addr[0]}:{addr[1]}')
             self._connections.append(client)
             if len(self._connections) > MAX_CONNECTIONS:
                 self.disconnect(client)
 
     def disconnect(self, client):
         addr, port = client.getpeername()
-        print(f'Соединение с клиентом {addr}:{port} разорвано.')
+        self.__logger.warning(f'Соединение с клиентом {addr}:{port} закрыто.')
         if client in self._connections:
             self._connections.remove(client)
         client.close()
@@ -58,19 +63,25 @@ class Server:
                 for client in self._connections:
                     try:
                         request = get_message(client)
-                        print(request)
+                        self.__logger.info(f'Получен запрос: {request}')
                         if request:
                             if client in self._connections:
                                 response = self.create_response(request)
                                 send_message(client, response)
+                                self.__logger.info(
+                                    f'Отправлен ответ: {response}'
+                                )
                     except ConnectionResetError:
                         self.disconnect(client)
                     except (ValueError, TypeError):
-                        print('Принято некорретное сообщение от клиента.')
+                        self.__logger.error(
+                            f'Принято некорректное сообщение от клиента.')
                         self.disconnect(client)
         except KeyboardInterrupt:
-            print('Сервер остановлен по инициативе пользователя.')
-
+            info_msg = 'Сервер остановлен по инициативе пользователя.'
+            self.__logger.info(info_msg)
+            print(info_msg)
+            
     def close(self):
         self._sock.close()
 
