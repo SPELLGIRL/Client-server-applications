@@ -9,7 +9,6 @@ class Log:
 
     def __init__(self, logger):
         self._func = None
-        self._wrapped = None
         self._obj = None
         # запоминаем логгер, чтобы можно было использовать разные
         self._logger = logger
@@ -19,11 +18,9 @@ class Log:
         def decorator(*args, **kwargs):
             self._func = func
             if len(self._func.__qualname__.split('.')) > 1:
-                self._wrapped = self._wrap_method(self._func)
-                return self._wrapped(*args, **kwargs)
+                return self._wrap_method(self._func)(*args, **kwargs)
             else:
-                self._wrapped = self._wrap_function(self._func)
-                return self._wrapped(*args, **kwargs)
+                return self._wrap_function(self._func)(*args, **kwargs)
 
         return decorator
 
