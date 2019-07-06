@@ -18,6 +18,9 @@ from exceptions import CUSTOM_EXCEPTIONS, UsernameToLongError, \
 from jim.config import *
 from jim.utils import send_message, get_message
 from log.config import client_logger
+from decorators import Log
+
+log_decorator = Log(client_logger)
 
 
 class Client:
@@ -63,6 +66,7 @@ class Client:
             exit(0)
 
     @staticmethod
+    @log_decorator
     def translate_response(response):
         if not isinstance(response, dict):
             raise TypeError
@@ -75,6 +79,7 @@ class Client:
             raise ResponseCodeError(code)
         return response
 
+    @log_decorator
     def create_presence(self):
         message = {
             ACTION: PRESENCE,
