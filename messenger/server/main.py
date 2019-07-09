@@ -13,6 +13,9 @@ from socket import socket, AF_INET, SOCK_STREAM
 from jim.utils import get_message, send_message
 from jim.config import *
 from log.config import server_logger
+from decorators import Log
+
+log_decorator = Log(server_logger)
 
 
 class Server:
@@ -47,6 +50,7 @@ class Server:
         client.close()
 
     @staticmethod
+    @log_decorator
     def create_response(request):
         if ACTION in request and \
                 request[ACTION] == PRESENCE and \
