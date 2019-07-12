@@ -1,3 +1,3 @@
-from main import run
+from server import run
 
 run()
