@@ -59,7 +59,7 @@ class Dispatcher:
 
     def release(self, names=None):
         while len(self.__out):
-            response = self.__out.pop()
+            response = self.__out.pop(0)
             if response.destination:
                 if response.destination in names:
                     client_socket = names[response.destination]
