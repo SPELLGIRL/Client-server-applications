@@ -47,6 +47,7 @@ class Console:
                     for param in start['params']:
                         p = str(input(f'Выберите параметр "{param}": '))
                         params[param] = p
+                print()
                 break
             except ValueError:
                 pass
@@ -91,7 +92,7 @@ class Console:
             print(response)
         if response.action == GET_CONTACTS:
             if response.quantity:
-                print(f'\nСписок контактов (подключено {response.quantity}).')
+                print(f'\n\nСписок контактов (подключено {response.quantity}).')
             if response.user:
                 print(f'{response.user or "Нет данных"}')
         elif response.action == SEND_MSG:
